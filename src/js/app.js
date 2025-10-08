@@ -1,76 +1,95 @@
-import goblinImage from "../img/goblin.png";
+import Board from "./components/Board";
 
-let board = [];
+const board = new Board();
 
-for (let i = 0; i < 4; i++) {
-  board.push(["", "", "", ""]);
-}
+const whackedSpan = document.querySelector(".whacked-count");
+const missedSpan = document.querySelector(".missed-count");
 
-function clearBoard() {
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board[i].length; j++) {
-      board[i][j] = "";
-    }
-  }
-}
+let whacked = 0;
+let missed = 0;
 
-let character = "x";
+whackedSpan.textContent = whacked;
+missedSpan.textContent = missed;
+
 let row;
 let column;
+let gameInterval;
 
 function generateRandomNumber() {
-  return Math.floor(Math.random() * 4);
+    return Math.floor(Math.random() * 4);
 }
 
 function putCharacter() {
-  row = generateRandomNumber();
-  column = generateRandomNumber();
+    row = generateRandomNumber();
+    column = generateRandomNumber();
 
-  board[row][column] = character;
-  renderBoard();
+    board.field[row][column] = board.character;
+    board.render();
 }
 
 function moveCharacter() {
-  let newRow = generateRandomNumber();
-  let newColumn = generateRandomNumber();
+    let newRow = generateRandomNumber();
+    let newColumn = generateRandomNumber();
 
-  if (board[row][column] !== board[newRow][newColumn]) {
-    clearBoard();
-    row = newRow;
-    column = newColumn;
-    board[row][column] = character;
-  }
+    if (board.field[row][column] !== board.field[newRow][newColumn]) {
+        board.clear();
+        row = newRow;
+        column = newColumn;
+        board.field[row][column] = board.character;
+    }
 
-  renderBoard();
+    board.render();
 }
 
-function renderBoard() {
-  const boardContainer = document.querySelector(".board");
-  boardContainer.innerHTML = "";
+function startGame() {
+    board.clear();
+    whacked = 0;
+    missed = 0;
+    whackedSpan.textContent = whacked;
+    missedSpan.textContent = missed;
 
-  for (let i = 0; i < board.length; i++) {
-    for (let j = 0; j < board.length; j++) {
-      const cell = document.createElement("div");
-      cell.classList.add("cell");
-      cell.textContent = board[i][j];
-      boardContainer.append(cell);
+    putCharacter();
 
-      if (cell.textContent === character) {
-        cell.textContent = "";
-        const goblin = document.createElement("img");
-        goblin.alt = "x";
-        goblin.classList.add("goblin");
-        goblin.src = goblinImage;
-        cell.append(goblin);
-      }
-    }
-  }
+    gameInterval = setInterval(() => {
+        moveCharacter();
+    }, 1000);
+}
+
+function endGame() {
+    const gameOver = document.querySelector(".game-over");
+    gameOver.classList.add("active");
+
+    clearInterval(gameInterval);
+
+    const button = document.querySelector("button");
+    button.addEventListener("click", () => {
+        gameOver.classList.remove("active");
+        startGame();
+    });
 }
 
 window.addEventListener("load", () => {
-  putCharacter();
+    startGame();
 });
 
-setInterval(() => {
-  moveCharacter();
-}, 2000);
+board.boardContainer.addEventListener("click", (event) => {
+    const item =
+      event.target.tagName === "IMG"
+          ? event.target.closest(".cell")
+          : event.target.closest(".cell");
+
+    if (!item) return;
+
+    if (item.querySelector("img")) {
+        whacked = whacked + 1;
+        whackedSpan.textContent = whacked;
+        moveCharacter();
+    } else {
+        missed = missed + 1;
+        missedSpan.textContent = missed;
+
+        if (missed >= 5) {
+            endGame();
+        }
+    }
+});
