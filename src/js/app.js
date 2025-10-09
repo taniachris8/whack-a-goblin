@@ -11,37 +11,52 @@ let missed = 0;
 whackedSpan.textContent = whacked;
 missedSpan.textContent = missed;
 
-let row;
-let column;
-let gameInterval;
+let characterPosition;
+let wasClicked = false;
+const maxNumberOfMisses = 5;
+let moveTimeout;
+
 
 function generateRandomNumber() {
-    return Math.floor(Math.random() * 4);
+    return Math.floor(Math.random() * board.field.length);
 }
 
 function putCharacter() {
-    row = generateRandomNumber();
-    column = generateRandomNumber();
-
-    board.field[row][column] = board.character;
+    characterPosition = generateRandomNumber();
+    wasClicked = false;
+    board.field[characterPosition] = board.character;
     board.render();
 }
 
 function moveCharacter() {
-    let newRow = generateRandomNumber();
-    let newColumn = generateRandomNumber();
+    if (!wasClicked) {
+        missed = missed + 1;
+        missedSpan.textContent = missed;
 
-    if (board.field[row][column] !== board.field[newRow][newColumn]) {
-        board.clear();
-        row = newRow;
-        column = newColumn;
-        board.field[row][column] = board.character;
+        if (missed >= maxNumberOfMisses) {
+            endGame();
+            return;
+        }
     }
 
+    let newCharacterPosition;
+
+    do {
+        newCharacterPosition = generateRandomNumber();
+    } while (newCharacterPosition === characterPosition);
+
+    board.field[characterPosition] = "";
+    characterPosition = newCharacterPosition;
+    board.field[characterPosition] = board.character;
     board.render();
+
+    wasClicked = false;
+
+    moveTimeout = setTimeout(moveCharacter, 1000);
 }
 
 function startGame() {
+    clearTimeout(moveTimeout);
     board.clear();
     whacked = 0;
     missed = 0;
@@ -49,17 +64,15 @@ function startGame() {
     missedSpan.textContent = missed;
 
     putCharacter();
-
-    gameInterval = setInterval(() => {
-        moveCharacter();
-    }, 1000);
+   
+    moveTimeout = setTimeout(moveCharacter, 1000);
 }
 
+
 function endGame() {
+    clearTimeout(moveTimeout);
     const gameOver = document.querySelector(".game-over");
     gameOver.classList.add("active");
-
-    clearInterval(gameInterval);
 
     const button = document.querySelector("button");
     button.addEventListener("click", () => {
@@ -72,24 +85,25 @@ window.addEventListener("load", () => {
     startGame();
 });
 
+
 board.boardContainer.addEventListener("click", (event) => {
     const item =
       event.target.tagName === "IMG"
           ? event.target.closest(".cell")
           : event.target.closest(".cell");
-
+     
     if (!item) return;
 
     if (item.querySelector("img")) {
+        wasClicked = true;
         whacked = whacked + 1;
         whackedSpan.textContent = whacked;
-        moveCharacter();
-    } else {
-        missed = missed + 1;
-        missedSpan.textContent = missed;
 
-        if (missed >= 5) {
-            endGame();
-        }
-    }
+        board.field[characterPosition] = "";
+        board.render();
+
+        clearTimeout(moveTimeout);
+        moveTimeout = setTimeout(moveCharacter, 0);
+    } 
 });
+
